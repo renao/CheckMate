@@ -59,4 +59,3 @@ Write-Host "`nProtokoll gespeichert unter $reportFile"
 
 # Exit-Code für Pipeline =>  vorerst immer erfolgreich
 exit 0
-scriptPath
