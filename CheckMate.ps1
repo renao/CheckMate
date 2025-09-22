@@ -8,7 +8,7 @@ param(
 
 function Get-ResultValueByStatusCode($statusCode) {
     if ($statusCode -eq 0) {
-        return "✔ Success"
+        return "✅ Success"
     } else {
         return "❌ Failed"
     }
@@ -35,7 +35,7 @@ Get-ChildItem -Path $checkFolder -Filter *.ps1 -Recurse | ForEach-Object {
         $simplifiedCheckPath = [System.IO.Path]::GetRelativePath($checkFolder, $scriptPath)
         Write-Host "* Führe Check aus => " $simplifiedCheckPath
         $result = & $scriptPath -RepoRoot $RepoRoot
-        $checkSuccess = $LASTEXITCODE        
+        $checkSuccess = $LASTEXITCODE
         $results[$simplifiedCheckPath] = @($checkSuccess, $result)
 
     } catch {
@@ -49,8 +49,8 @@ foreach ($check in $results.Keys) {
 
     $checkResult = $results[$check]
     $status = Get-ResultValueByStatusCode($checkResult[0])
-    $results = $checkResult[1]
-    $markdown += "`n$check\: $status $results"
+    $checkInfos = $checkResult[1]
+    $markdown += "`n$check\: $status $checkInfos"
 }
 
 $markdown -join "`n" | Set-Content -Encoding UTF8 $reportFile
