@@ -1,4 +1,10 @@
-Import-Module .\common\FileChecks.psm1
+ param (
+        [Parameter(Mandatory=$true)]
+        [string]$RepoRoot
+        )
+
+
+Import-Module "$RepoRoot\common\FileChecks.psm1"
 
 $readmeExists = RepositoryContainsFile("README.md")
 
