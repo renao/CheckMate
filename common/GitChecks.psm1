@@ -1,0 +1,1 @@
+. $PSScriptRoot\GitChecks\GitChecks.ps1
