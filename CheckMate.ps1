@@ -6,13 +6,7 @@ param(
     [string]$ReportPath =  "$(get-date -f yyyy-MM-dd-HH-mm-ss)_autoreview-report.md"
 )
 
-function Get-ResultValueByStatusCode($statusCode) {
-    if ($statusCode -eq 0) {
-        return "✅ Success"
-    } else {
-        return "❌ Failed"
-    }
-}
+Import-Module "$PSScriptRoot/common/MarkdownReport.psd1"
 
 # Absolute Pfade berechnen
 $RepoRoot   = (Resolve-Path $RepoRoot).Path
@@ -43,23 +37,15 @@ Get-ChildItem -Path $checkFolder -Filter *.ps1 -Recurse | ForEach-Object {
     catch
     {
         Write-Error "Exception while running `n$_"
-        $results[$scriptPath] = @(Get-ResultValueByStatusCode(20), "Threw Exception: $_")
+        $results[$scriptPath] = @(1, "Threw Exception: $_")
     }
 }
 
-$runChecks = $results.Keys | Sort-Object
+$markdownReport = New-MarkdownReport -results $results
 
-foreach ($check in $runChecks) {
+Write-Host "`n$markdownReport"
 
-    $checkResult = $results[$check]
-    $status = Get-ResultValueByStatusCode($checkResult[0])
-    $checkInfos = $checkResult[1]
-    $markdown += "`n$check\: $status $checkInfos"
-}
+Set-Content -Value $markdownReport -Encoding UTF8 $reportFile 
+Write-Host "`n See report file: $reportFile"
 
-$markdown -join "`n" # | Set-Content -Encoding UTF8 $reportFile
-# Write-Host $markdown
-# Write-Host "`nProtokoll gespeichert unter $reportFile"
-
-# Exit-Code für Pipeline =>  vorerst immer erfolgreich
 exit 0
