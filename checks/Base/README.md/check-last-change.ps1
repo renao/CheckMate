@@ -18,7 +18,7 @@ switch ($ageCheckResult) {
     }
 
     1 {
-        $lastCommitDate = (Get-LastFileCommit -filePath $readmePath)
+        $lastCommitDate = (Get-LastFileCommitDate -filePath $readmePath)
         "$readmeName is outdated - last commit: $lastCommitDate"
         exit 1
     }

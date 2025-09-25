@@ -1,12 +1,3 @@
-@{
-    RootModule = 'GitChecks.psm1'
-    ModuleVersion = '1.0'
-    Author = 'renao'
-    Description = 'Basic git checks for your repository'
-    FunctionsToExport = @('Approve-FileIsYoungerThan', 'Get-LastFileCommit')
-}
-
-# Predefined
 function Approve-FileIsYoungerThan {
     [OutputType([System.Int16])]
     param (
@@ -15,7 +6,7 @@ function Approve-FileIsYoungerThan {
         [Parameter(Mandatory=$true)]
         [DateTime]$cutOffDay
     )
-    $fileCommittedAt = Get-LastFileCommit -filePath $filePath
+    $fileCommittedAt = Get-LastFileCommitDate -filePath $filePath
 
     if ($null -eq $fileCommittedAt) {
         # Not able to find or fetch file information from git/current branch.
@@ -30,7 +21,7 @@ function Approve-FileIsYoungerThan {
     return 0
 }
 
-function Get-LastFileCommit {
+function Get-LastFileCommitDate {
     [OutputType([System.DateTime])]
     param (
         [Parameter(Mandatory=$true)]
