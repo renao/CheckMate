@@ -3,14 +3,16 @@
         [string]$RepoRoot
         )
 
+Import-Module "$RepoRoot\common\FileChecks.psd1"
 
-Import-Module "$RepoRoot\common\FileChecks.psm1"
-
-$readmeExists = RepositoryContainsFile("README.md")
+$readmeName = "README.md"
+$readmePath =  "$RepoRoot/$readmeName"
+$readmeExists = Approve-FileExists($readmePath)
 
 if ($readmeExists) {
-    "README.md vorhanden"
+    "$readmeName exists"
     exit 0
 }
-"README.md fehlt"
+
+"$readmeName missing"
 exit 1

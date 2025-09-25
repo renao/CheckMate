@@ -25,27 +25,31 @@ $reportFile  = if ([System.IO.Path]::IsPathRooted($ReportPath)) {
 
 $results = @{}
 
-Write-Host ">>> Repository-Root: $RepoRoot"
-Write-Host ">>> Report-Datei   : $reportFile"
+Write-Host ">>> Repository Root: $RepoRoot"
+Write-Host ">>> Report file being generated: $reportFile"
 
 # Alle Checks rekursiv einsammeln
 Get-ChildItem -Path $checkFolder -Filter *.ps1 -Recurse | ForEach-Object {
     $scriptPath = $_.FullName
-    try {
+
+    try
+    {
         $simplifiedCheckPath = [System.IO.Path]::GetRelativePath($checkFolder, $scriptPath)
-        Write-Host "* Führe Check aus => " $simplifiedCheckPath
+        Write-Host "Executing => " $simplifiedCheckPath
         $result = & $scriptPath -RepoRoot $RepoRoot
         $checkSuccess = $LASTEXITCODE
         $results[$simplifiedCheckPath] = @($checkSuccess, $result)
-
-    } catch {
-        Write-Error "Exception bei der Ausführung von $`n$_"
+    }
+    catch
+    {
+        Write-Error "Exception while running `n$_"
+        $results[$scriptPath] = @(Get-ResultValueByStatusCode(20), "Threw Exception: $_")
     }
 }
 
-$markdown = @("# Prüfprotokoll")
+$runChecks = $results.Keys | Sort-Object
 
-foreach ($check in $results.Keys) {
+foreach ($check in $runChecks) {
 
     $checkResult = $results[$check]
     $status = Get-ResultValueByStatusCode($checkResult[0])
@@ -53,9 +57,9 @@ foreach ($check in $results.Keys) {
     $markdown += "`n$check\: $status $checkInfos"
 }
 
-$markdown -join "`n" | Set-Content -Encoding UTF8 $reportFile
-Write-Host $markdown
-Write-Host "`nProtokoll gespeichert unter $reportFile"
+$markdown -join "`n" # | Set-Content -Encoding UTF8 $reportFile
+# Write-Host $markdown
+# Write-Host "`nProtokoll gespeichert unter $reportFile"
 
 # Exit-Code für Pipeline =>  vorerst immer erfolgreich
 exit 0

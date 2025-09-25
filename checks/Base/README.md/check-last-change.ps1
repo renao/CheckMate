@@ -3,25 +3,33 @@
         [string]$RepoRoot
         )
 
-Import-Module "$RepoRoot/common/GitChecks.psm1"
+Import-Module "$RepoRoot\common\GitChecks.psd1"
 
 $thresholdMonths = 12
-$readmePath = "$RepoRoot/CheckMate.ps1"
+$readmeName = "README.md"
+$readmePath =  "$RepoRoot/$readmeName"
 
 $ageCheckResult = Approve-FileIsYoungerThan -filePath $readmePath -cutOffDay (Get-Date).AddMonths(-$thresholdMonths)
 
 switch ($ageCheckResult) {
     0 {
-        "Datei wurde in den letzten $thresholdMonths Monaten aktualisert."
+        "$readmeName was modified in the last $thresholdMonths months."
         exit 0
     }
+
     1 {
         $lastCommitDate = (Get-LastFileCommit -filePath $readmePath)
-        "Datei ist veraltet. Letzter Commit am $lastCommitDate"
+        "$readmeName is outdated - last commit: $lastCommitDate"
         exit 1
     }
+
+    20 {
+        "$readmeName is missing in the git repository"
+        exit 1
+    }
+
     $null {
-        "Konnte $readmePath nicht finden"
+        "$readmeName not found"
         exit 1
     }
 }
