@@ -3,7 +3,7 @@
         [string]$RepoRoot
         )
 
-Import-Module "$RepoRoot\common\GitChecks.psd1"
+Import-Module "$PSScriptRoot\..\..\..\common\GitChecks.psd1"
 
 $thresholdMonths = 12
 $readmeName = "README.md"

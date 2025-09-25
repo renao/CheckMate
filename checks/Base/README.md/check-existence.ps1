@@ -3,7 +3,7 @@
         [string]$RepoRoot
         )
 
-Import-Module "$RepoRoot\common\FileChecks.psd1"
+Import-Module "$PSScriptRoot\..\..\..\common\FileChecks.psd1"
 
 $readmeName = "README.md"
 $readmePath =  "$RepoRoot/$readmeName"

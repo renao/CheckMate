@@ -4,7 +4,7 @@
         )
 
 
-Import-Module "$RepoRoot\common\FileChecks.psd1"
+Import-Module "$PSScriptRoot\..\..\..\common\FileChecks.psd1"
 
 $NuGetPackages = Get-FilesByExtension -rootPath $RepoRoot -fileExtension "nupkg"
 
