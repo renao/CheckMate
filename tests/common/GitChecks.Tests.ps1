@@ -1,9 +1,6 @@
 $modulePath = Join-Path $PSScriptRoot '..\..\common\GitChecks.psd1'
 Import-Module $modulePath -Force
 
-    # 'Approve-FileIsYoungerThan'
-    # 'Get-LastFileCommitDate'
-
 Describe 'Approve-FileIsYoungerThan' {
     It 'Returns 0 if files last commit is younger than a certain day' {
         $expectedAtFilePath = Join-Path $PSScriptRoot '../../README.md'
