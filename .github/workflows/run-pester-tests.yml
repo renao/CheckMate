@@ -37,6 +37,7 @@ jobs:
           $config.Run.PassThru = $true
           $config.CodeCoverage.Enabled = $true
           $config.CodeCoverage.Path = $allScripts.FullName
+          $config.CodeCoverage.OutputFile = 'TestResults/coverage.cobertura.xml'
           $config.TestResult.Enabled = $true
           $config.TestResult.OutputPath = 'TestResults/TestResults.xml'
           $config.TestResult.OutputFormat = 'NUnitXml'
@@ -50,6 +51,22 @@ jobs:
 
           # set exit code for CI
           if ($results.FailedCount -gt 0) { exit 1 }
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: TestResults/coverage.cobertura.xml
+          fail_ci_if_error: true
+          verbose: true
+
+      - name: Show coverage summary
+        shell: pwsh
+        run: |
+          $coverage = [xml](Get-Content 'TestResults/coverage.cobertura.xml')
+          $linesCovered = [int]$coverage.coverage.project.metrics.lines-covered
+          $linesValid = [int]$coverage.coverage.project.metrics.lines-valid
+          $percent = [math]::Round(($linesCovered / $linesValid * 100), 2)
+          Write-Host "📊 Code Coverage: $percent %"
 
       - name: Upload test and coverage results
         uses: actions/upload-artifact@v4
