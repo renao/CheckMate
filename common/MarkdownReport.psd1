@@ -1,7 +1,8 @@
 @{
     RootModule = 'MarkdownReport.psm1'
-    ModuleVersion = '1.0'
+    ModuleVersion = '0.2'
+    GUID = '61c5278b-0a8f-4b05-8941-971165d363a3'
     Author = 'renao'
-    Description = 'Functions to create a markdown report from a CheckMate result set'
+    Description = 'Creates markdown from a result set'
     FunctionsToExport = @('New-MarkdownReport')
 }

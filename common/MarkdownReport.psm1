@@ -1,4 +1,5 @@
-function Get-ResultValueByStatusCode($statusCode) {
+function _Get-ResultValueByStatusCode($statusCode) {
+
     if ($statusCode -eq 0) {
         return "✅"
     } else {
@@ -7,6 +8,20 @@ function Get-ResultValueByStatusCode($statusCode) {
 }
 
 function New-MarkdownReport {
+    <#
+    .SYNOPSIS
+    Creates a new markdown report.
+
+    .DESCRIPTION
+    Creates a markdown report from a result set.
+
+    .PARAMETER results
+    A Hashtable in the form of [Name of the check] => [StatusCode (0/1), additional infos]
+
+    .EXAMPLE
+    New-MarkdownReport -results $checkResults
+    
+    #>
     [OutputType([System.String])]
     param (
         [Parameter(Mandatory=$true)]
@@ -19,7 +34,7 @@ function New-MarkdownReport {
     foreach ($check in $runChecks) {
 
         $checkResult = $results[$check]
-        $status = Get-ResultValueByStatusCode -statusCode $checkResult[0]
+        $status = _Get-ResultValueByStatusCode -statusCode $checkResult[0]
         $checkInfos = $checkResult[1]
         $markdown += "`n* $status | $checkInfos ($check)"
     }
