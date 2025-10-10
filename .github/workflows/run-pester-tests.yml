@@ -26,9 +26,12 @@ jobs:
           # Create output directory
           New-Item -ItemType Directory -Force -Path 'TestResults' | Out-Null
           
+          $allScripts = Get-ChildItem -Path $PWD -Recurse -Include *.ps1 |
+                        Where-Object { $_.FullName -notmatch '\\tests\\' }
+
           # Run tests
           $results = Invoke-Pester -Path 'tests' `
-            -CodeCoverage 'src' `
+            -CodeCoverage $allScripts.FullName`
             -OutputFormat NUnitXml `
             -OutputFile 'TestResults/TestResults.xml' `
             -PassThru
