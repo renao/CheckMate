@@ -23,7 +23,7 @@ function Get-FilesByExtension {
         [Parameter(Mandatory=$true)]
         [string] $fileExtension
     )
-    $files = Get-ChildItem -Path $rootPath -Recurse -Filter "*.$fileExtension" -File > $null
+    $files = @(Get-ChildItem -Path $rootPath -Recurse -Filter "*.$fileExtension" -File) > $null
     return $files
 }
 
