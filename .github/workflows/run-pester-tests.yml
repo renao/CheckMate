@@ -1,0 +1,46 @@
+name: Run Pester Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    name: Run Pester Tests with Coverage
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Pester
+        shell: pwsh
+        run: |
+          Install-Module Pester -Force -SkipPublisherCheck
+
+      - name: Run Pester with code coverage
+        shell: pwsh
+        run: |
+          # Create output directory
+          New-Item -ItemType Directory -Force -Path 'TestResults' | Out-Null
+          
+          # Run tests
+          $results = Invoke-Pester -Path 'tests' `
+            -CodeCoverage 'src' `
+            -OutputFormat NUnitXml `
+            -OutputFile 'TestResults/TestResults.xml' `
+            -PassThru
+
+          # Speichere Coverage-Daten als JSON
+          $results.CodeCoverage | ConvertTo-Json -Depth 5 | Out-File 'TestResults/CodeCoverage.json'
+
+          # Falls Tests fehlschlagen → Exit-Code != 0
+          if ($results.FailedCount -gt 0) { exit 1 }
+
+      - name: Upload test and coverage results
+        uses: actions/upload-artifact@v4
+        with:
+          name: Pester-Results
+          path: TestResults/
