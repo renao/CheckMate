@@ -37,7 +37,7 @@ jobs:
           $config.Run.PassThru = $true
           $config.CodeCoverage.Enabled = $true
           $config.CodeCoverage.Path = $allScripts.FullName
-          $config.CodeCoverage.OutputFile = 'TestResults/coverage.cobertura.xml'
+          $config.CodeCoverage.OutputPath = 'TestResults/coverage.cobertura.xml'
           $config.TestResult.Enabled = $true
           $config.TestResult.OutputPath = 'TestResults/TestResults.xml'
           $config.TestResult.OutputFormat = 'NUnitXml'
