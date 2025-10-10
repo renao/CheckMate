@@ -1,3 +1,21 @@
+<#
+    .SYNOPSIS
+    This is CheckMate. He will run everything you give him inside a "checks/" folder.
+
+    .DESCRIPTION
+    CheckMate is intended to run automated checks for a software projects repository. Its also meant to be easily extended by just adding PowerShell scripts to its checks/-folder.
+
+    .PARAMETER RepoRoot
+    The root folder to run the checks from.
+
+    .PARAMETER ReportPath
+    (optional) Specifies the output path for the report - will be generated inside the repoPath otherwise.
+
+    .EXAMPLE
+    ./CheckMate.ps1 -repoPath "." -ReportPath "CheckResults.md"
+    
+    #>
+
 param(
     # Repository-Root: Standardwert ist das aktuelle Verzeichnis
     [string]$RepoRoot = ".",
