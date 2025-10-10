@@ -1,4 +1,18 @@
 function Approve-FileIsYoungerThan {
+    <#
+    .SYNOPSIS
+    Approves that a file is not older than the given $cutOffDay.
+
+    .DESCRIPTION
+    Approves that a file is not older than the given $cutOffDay.
+
+    .PARAMETER filePath
+    The file to approve.
+
+    .EXAMPLE
+    Approve-FileIsYoungerThan -filePath "README.md"
+
+    #>
     [OutputType([System.Int16])]
     param (
         [Parameter(Mandatory=$true)]
@@ -22,6 +36,20 @@ function Approve-FileIsYoungerThan {
 }
 
 function Get-LastFileCommitDate {
+    <#
+    .SYNOPSIS
+    Gets the date from the last commit of a file.
+
+    .DESCRIPTION
+    Returns a DateTime object for the last commit of the file or $null if the file does not exist in the repository.
+
+    .PARAMETER filePath
+    The file to examine
+
+    .EXAMPLE
+    Get-LastFileCommitDate -filePath "README.md"
+    
+    #>
     [OutputType([System.DateTime])]
     param (
         [Parameter(Mandatory=$true)]
