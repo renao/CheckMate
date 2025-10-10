@@ -1,0 +1,56 @@
+name: Run Pester Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    name: Run Pester Tests with Coverage
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Pester
+        shell: pwsh
+        run: |
+          Install-Module Pester -Force -SkipPublisherCheck
+
+      - name: Run Pester with code coverage
+        shell: pwsh
+        run: |
+          # Create output directory
+          New-Item -ItemType Directory -Force -Path 'TestResults' | Out-Null
+          
+          $allScripts = Get-ChildItem -Path $PWD -Recurse -Include *.ps1 |
+                        Where-Object { $_.FullName -notmatch '\\tests\\' }
+
+          # create Pester configuration
+          $config = New-PesterConfiguration
+          $config.Run.Path = 'tests'
+          $config.Run.PassThru = $true
+          $config.CodeCoverage.Enabled = $true
+          $config.CodeCoverage.Path = $allScripts.FullName
+          $config.TestResult.Enabled = $true
+          $config.TestResult.OutputPath = 'TestResults/TestResults.xml'
+          $config.TestResult.OutputFormat = 'NUnitXml'
+          $config.Output.Verbosity = 'Detailed'
+
+          # run tests
+          $results = Invoke-Pester -Configuration $config
+
+          # save coverage as json
+          $results.CodeCoverage | ConvertTo-Json -Depth 5 | Out-File 'TestResults/CodeCoverage.json'
+
+          # set exit code for CI
+          if ($results.FailedCount -gt 0) { exit 1 }
+
+      - name: Upload test and coverage results
+        uses: actions/upload-artifact@v4
+        with:
+          name: Pester-Results
+          path: TestResults/
