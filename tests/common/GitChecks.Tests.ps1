@@ -9,7 +9,7 @@ Describe 'Approve-FileIsYoungerThan' {
     }
     It 'Returns 1 if a file is older than a certain day' {
         $expectedAtFilePath = Join-Path $PSScriptRoot '../../README.md'
-        $cutOffDay = Get-Date
+        $cutOffDay = (Get-Date).AddYears(2)
         Approve-FileIsYoungerThan -filePath $expectedAtFilePath -cutOffDay $cutOffDay | Should -Be 1
     }
 
