@@ -11,7 +11,7 @@ on:
 jobs:
   test:
     name: Run Pester Tests with Coverage
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
