@@ -12,7 +12,7 @@
     (optional) Specifies the output path for the report - will be generated inside the repoPath otherwise.
 
     .EXAMPLE
-    ./CheckMate.ps1 -repoPath "." -ReportPath "CheckResults.md"
+    ./CheckMate.ps1 -RepoRoot "." -ReportPath "CheckResults.md"
     
     #>
 
