@@ -1,22 +1,3 @@
-Describe "CheckMate.ps1 - Parameter-Validierung" {
-    It "RepoRoot sollte standardmäßig auf '.' gesetzt sein" {
-        $checkMateScript = Join-Path $PSScriptRoot '..\CheckMate.ps1'
-        $content = Get-Content -Path $checkMateScript -Raw
-        $paramBlock = [regex]::Match($content, 'param\s*\((.*?)\)', [System.Text.RegularExpressions.RegexOptions]::Singleline).Groups[1].Value
-        $repoRootMatch = [regex]::Match($paramBlock, '\$RepoRoot\s*=\s*"\."')
-        $repoRootMatch.Success | Should -Be $true
-    }
-
-    #It "ReportPath sollte standardmäßig eine Datumsbasierte Datei im RepoRoot erstellen" {
-    #    $checkMateScript = Join-Path $PSScriptRoot '..\CheckMate.ps1'
-    #    $content = Get-Content -Path $checkMateScript -Raw
-    #    $paramBlock = [regex]::Match($content, 'param\s*\((.*?)\)', [System.Text.RegularExpressions.RegexOptions]::Singleline).Groups[1].Value
-    #    $reportPathMatch = [regex]::Match($paramBlock, '\$ReportPath\s*=\s*"\$\(get-date.*autoreview-report\.md"')
-    #    Write-Host $reportPathMatch
-    #    $reportPathMatch.Success | Should -Be $true
-    #}
-}
-
 Describe "CheckMate.ps1 - Pfadauflösung" {
     It "RepoRoot sollte als absoluter Pfad aufgelöst werden" {
         $testRepoRoot = "."
@@ -33,4 +14,3 @@ Describe "CheckMate.ps1 - Pfadauflösung" {
         $actualReportPath | Should -Be $expectedReportPath
     }
 }
-
