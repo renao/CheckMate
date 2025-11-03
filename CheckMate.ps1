@@ -12,23 +12,30 @@
     (optional) Specifies the output path for the report - will be generated inside the repoPath otherwise.
 
     .EXAMPLE
-    ./CheckMate.ps1 -RepoRoot "." -ReportPath "CheckResults.md"
+    Run only the checks from the `checks/Sanity` directory on the `./MySolution/MyProject` path and generate a `ChecksResult.md` file with the results:
+    
+    ./CheckMate.ps1 -RepoRoot "./MySolution/ProjectDirectory" -ReportPath "CheckResults.md" -ChecksBasePath "checks/Sanity"
     
     #>
 
 param(
-    # Repository-Root: Standardwert ist das aktuelle Verzeichnis
+    # Root directory to run the checks for
     [string]$RepoRoot = ".",
 
-    # Protokolldatei: Standardwert im RepoRoot
+    # Base directory for the checks to run (relative to this script)
+    [string]$ChecksBasePath = "checks",
+
+    # name of the report file to be created
     [string]$ReportPath =  "$(get-date -f yyyy-MM-dd-HH-mm-ss)_autoreview-report.md"
+
+    # 
 )
 
 Import-Module "$PSScriptRoot/common/MarkdownReport.psd1"
 
 # Absolute Pfade berechnen
 $RepoRoot   = (Resolve-Path $RepoRoot).Path
-$checkFolder = Join-Path $PSScriptRoot "checks"
+$checkFolder = Join-Path $PSScriptRoot $ChecksBasePath
 $reportFile  = if ([System.IO.Path]::IsPathRooted($ReportPath)) {
     $ReportPath
 } else {
