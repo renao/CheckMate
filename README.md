@@ -36,12 +36,12 @@ You can run `CheckMate.ps1` without adding any additional parameter:
 ./CheckMate.ps1
 ```
 
-CheckMate will fall back to its current directory a test object and generate a report file by itself.
+CheckMate will fall back to its current directory a test object, use the `checks` directory for the tests to run and generate a report file by itself.
 
-You can change this by using the corresponding parameters:
+Anyhow, you can alter these default configuration by using the corresponding parameters:
 
 ```powershell
-./CheckMate.ps1 -repoPath "." -ReportPath "CheckResults.md"
+./CheckMate.ps1 -repoPath "." -ChecksBasePath "./checks/Sanity" -ReportPath "CheckResults.md"
 ```
 
 ## License
