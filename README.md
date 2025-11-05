@@ -30,7 +30,19 @@ So CheckMate only needs to be run in a **PowerShell Core 7+**.
 
 ## Usage
 
-You can run `CheckMate.ps1` without adding any additional parameter:
+1. Import CheckMate
+
+Go and import the CheckMade Module in your current PowerShell session, e.g.:
+
+```powershell
+Import-Module CheckMate.psd1
+```
+
+2. Invoke CheckMate to run its tests
+
+```powershell
+Invoke-CheckMate
+```
 
 ```powershell
 ./CheckMate.ps1
@@ -41,7 +53,7 @@ CheckMate will fall back to its current directory a test object, use the `checks
 Anyhow, you can alter these default configuration by using the corresponding parameters:
 
 ```powershell
-./CheckMate.ps1 -repoPath "." -ChecksBasePath "./checks/Sanity" -ReportPath "CheckResults.md"
+./Invoke-CheckMate -repoPath "." -ChecksBasePath "./checks/Sanity" -ReportPath "CheckResults.md"
 ```
 
 ## License
