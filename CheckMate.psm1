@@ -36,8 +36,7 @@ function Invoke-CheckMate {
     $workingDirectory = Resolve-RepoRoot -RepoRoot $RepoRoot
 
     if ($null -eq $workingDirectory) {
-        Write-Output "RepoRoot is not valid or does not exist: $RepoRoot"
-        return 1
+        throw "RepoRoot is not valid or does not exist: $RepoRoot"
     }
     
     $checkFolder = Join-Path $PSScriptRoot $ChecksBasePath
