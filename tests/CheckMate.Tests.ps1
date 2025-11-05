@@ -1,16 +1,13 @@
-Describe "CheckMate.ps1 - Pfadauflösung" {
-    It "RepoRoot sollte als absoluter Pfad aufgelöst werden" {
-        $testRepoRoot = "."
-        $resolvedPath = (Resolve-Path $testRepoRoot).Path
-        $resolvedPath | Should -Not -BeNullOrEmpty
-        $resolvedPath | Should -Match '^([A-Za-z]:\\|\\\\\\\\|/)'  # Windows/Unix-Pfad
-    }
+BeforeAll {
+    $modulePath = Join-Path $PSScriptRoot '..\CheckMate.psd1'
+    Import-Module $modulePath -Force
+}
 
-    It "ReportPath sollte relativ zu RepoRoot aufgelöst werden, falls nicht absolut" {
-        $testRepoRoot = (Get-Location).Path
-        $testReportPath = "report.md"
-        $expectedReportPath = Join-Path $testRepoRoot $testReportPath
-        $actualReportPath = if ([System.IO.Path]::IsPathRooted($testReportPath)) { $testReportPath } else { Join-Path $testRepoRoot $testReportPath }
-        $actualReportPath | Should -Be $expectedReportPath
+Describe "Invoke-CheckMate" {
+    Context "Validating parameters" {
+        It "Exits FAILED when repository path does not exist" {
+            $result = Invoke-CheckMate -RepoRoot "C:\nonexistant"
+            $result | Should -Be 1
+        }
     }
 }

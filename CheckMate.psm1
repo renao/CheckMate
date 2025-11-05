@@ -18,7 +18,7 @@ function Invoke-CheckMate {
     .EXAMPLE
     Run only the checks from the `checks/Sanity` directory on the `./MySolution/MyProject` path and generate a `ChecksResult.md` file with the results:
     
-    ./CheckMate.ps1 -RepoRoot "./MySolution/ProjectDirectory" -ReportPath "CheckResults.md" -ChecksBasePath "checks/Sanity"
+    Invoke-CheckMate -RepoRoot "./MySolution/ProjectDirectory" -ReportPath "CheckResults.md" -ChecksBasePath "checks/Sanity"
     
     #>
 
@@ -31,25 +31,17 @@ function Invoke-CheckMate {
 
         # name of the report file to be created
         [string]$ReportPath =  "$(get-date -f yyyy-MM-dd-HH-mm-ss)_autoreview-report.md"
-
-        # 
     )
+   
+    $workingDirectory = Resolve-RepoRoot -RepoRoot $RepoRoot
 
-    Import-Module "$PSScriptRoot/common/MarkdownReport.psd1"
-
-    # Absolute Pfade berechnen
-    $RepoRoot   = (Resolve-Path $RepoRoot).Path
-    $checkFolder = Join-Path $PSScriptRoot $ChecksBasePath
-    $reportFile  = if ([System.IO.Path]::IsPathRooted($ReportPath)) {
-        $ReportPath
-    } else {
-        Join-Path $RepoRoot $ReportPath
+    if ($null -eq $workingDirectory) {
+        Write-Error "RepoRoot is not valid or does not exist: $RepoRoot"
+        return 1
     }
-
+    
+    $checkFolder = Join-Path $PSScriptRoot $ChecksBasePath
     $results = @{}
-
-    Write-Host ">>> Repository Root: $RepoRoot"
-    Write-Host ">>> Report file being generated: $reportFile"
 
     # Alle Checks rekursiv einsammeln
     Get-ChildItem -Path $checkFolder -Filter *.ps1 -Recurse | ForEach-Object {
@@ -58,8 +50,7 @@ function Invoke-CheckMate {
         try
         {
             $simplifiedCheckPath = [System.IO.Path]::GetRelativePath($checkFolder, $scriptPath)
-            Write-Host "Executing => " $simplifiedCheckPath
-            $result = & $scriptPath -RepoRoot $RepoRoot
+            $result = & $scriptPath -RepoRoot $workingDirectory
             $checkSuccess = $LASTEXITCODE
             $results[$simplifiedCheckPath] = @($checkSuccess, $result)
         }
@@ -72,10 +63,37 @@ function Invoke-CheckMate {
         }
     }
 
+    Import-Module "$PSScriptRoot/common/MarkdownReport.psd1"
     $markdownReport = New-MarkdownReport -results $results
 
-    Write-Host "`n$markdownReport"
+    Write-Output "`n$markdownReport"
+
+
+    $reportFile  = if ([System.IO.Path]::IsPathRooted($ReportPath)) {
+        $ReportPath
+    } else {
+        Join-Path $workingDirectory $ReportPath
+    }
 
     Set-Content -Value $markdownReport -Encoding UTF8 $reportFile 
-    Write-Host "`n See report file: $reportFile"
+    Write-Output "`n See report file: $reportFile"
+
+    return 0
+}
+
+function Resolve-RepoRoot {
+    param(
+        [string] $repoRoot
+    )
+    
+    $resolvedPath = Resolve-Path $repoRoot -ErrorAction SilentlyContinue
+
+    if (
+        (-not $resolvedPath) -or
+        (-not $(Test-Path -Path $resolvedPath -PathType Container)))
+    {
+        return $null
+    }
+
+    return $resolvedPath.Path
 }
