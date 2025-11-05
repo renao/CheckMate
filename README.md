@@ -44,10 +44,6 @@ Import-Module CheckMate.psd1
 Invoke-CheckMate
 ```
 
-```powershell
-./CheckMate.ps1
-```
-
 CheckMate will fall back to its current directory a test object, use the `checks` directory for the tests to run and generate a report file by itself.
 
 Anyhow, you can alter these default configuration by using the corresponding parameters:
