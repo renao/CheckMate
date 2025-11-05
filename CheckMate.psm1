@@ -36,7 +36,7 @@ function Invoke-CheckMate {
     $workingDirectory = Resolve-RepoRoot -RepoRoot $RepoRoot
 
     if ($null -eq $workingDirectory) {
-        Write-Error "RepoRoot is not valid or does not exist: $RepoRoot"
+        Write-Output "RepoRoot is not valid or does not exist: $RepoRoot"
         return 1
     }
     
