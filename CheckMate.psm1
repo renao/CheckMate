@@ -65,19 +65,24 @@ function Invoke-CheckMate {
     Import-Module "$PSScriptRoot/common/MarkdownReport.psd1"
     $markdownReport = New-MarkdownReport -results $results
 
-    Write-Output "`n$markdownReport"
-
-
-    $reportFile  = if ([System.IO.Path]::IsPathRooted($ReportPath)) {
-        $ReportPath
-    } else {
-        Join-Path $workingDirectory $ReportPath
-    }
-
-    Set-Content -Value $markdownReport -Encoding UTF8 $reportFile 
-    Write-Output "`n See report file: $reportFile"
+    Write-ReportFile -reportPath $ReportPath -reportFileContent $markdownReport
 
     return 0
+}
+
+function Write-ReportFile {
+    param(
+        [string] $reportPath,
+        [string] $reportFileContent
+    )
+
+    $reportFile  = if ([System.IO.Path]::IsPathRooted($reportPath)) {
+        $reportPath
+    } else {
+        Join-Path $workingDirectory $reportPath
+    }
+
+    Set-Content -Value $reportFileContent -Encoding UTF8 $reportFile
 }
 
 function Resolve-RepoRoot {
