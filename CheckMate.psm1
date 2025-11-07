@@ -62,15 +62,35 @@ function Invoke-CheckMate {
         }
     }
 
-    Import-Module "$PSScriptRoot/common/MarkdownReport.psd1"
-    $markdownReport = New-MarkdownReport -results $results
+    $reportContent = Get-ReportFileContent  -checkResults $results
+    New-ReportFile -reportPath $ReportPath -reportFileContent $reportContent
 
-    Write-ReportFile -reportPath $ReportPath -reportFileContent $markdownReport
-
-    return 0
+    return $(Get-OverallResult -checkResults $results)
 }
 
-function Write-ReportFile {
+function Get-OverallResult {
+    param(
+        [Hashtable] $checkResults
+    )
+
+    $overallSuccess = $checkResults.Values | ForEach-Object { $_[0] } | Where-Object { $_[0] -ne 0 }
+
+    if ($overallSuccess.Count -eq 0) {
+        return 0
+    } else {
+        return 1
+    }
+}
+
+function Get-ReportFileContent {
+    param (
+        [Hashtable] $checkResults
+    )
+    Import-Module "$PSScriptRoot/common/MarkdownReport.psd1"
+    return New-MarkdownReport -results $checkResults
+}
+
+function New-ReportFile {
     param(
         [string] $reportPath,
         [string] $reportFileContent
