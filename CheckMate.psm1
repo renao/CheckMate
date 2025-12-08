@@ -32,7 +32,7 @@ function Invoke-CheckMate {
         # name of the report file to be created
         [string]$ReportPath =  "$(get-date -f yyyy-MM-dd-HH-mm-ss)_autoreview-report.md"
     )
-   
+
     $workingDirectory = Resolve-RepoRoot -RepoRoot $RepoRoot
 
     if ($null -eq $workingDirectory) {
@@ -57,16 +57,11 @@ function Invoke-CheckMate {
         {
             Write-Error "Exception while running `n$_"
             $results[$scriptPath] = @(1, "Threw Exception: $_")
-
-            return 1
         }
     }
 
     Import-Module "$PSScriptRoot/common/MarkdownReport.psd1"
     $markdownReport = New-MarkdownReport -results $results
-
-    Write-Output "`n$markdownReport"
-
 
     $reportFile  = if ([System.IO.Path]::IsPathRooted($ReportPath)) {
         $ReportPath
@@ -75,9 +70,8 @@ function Invoke-CheckMate {
     }
 
     Set-Content -Value $markdownReport -Encoding UTF8 $reportFile 
-    Write-Output "`n See report file: $reportFile"
 
-    return 0
+    return Get-OverallResult $results
 }
 
 function Resolve-RepoRoot {
@@ -95,4 +89,19 @@ function Resolve-RepoRoot {
     }
 
     return $resolvedPath.Path
+}
+
+function Get-OverallResult {
+    param (
+        [Hashtable] $results
+    )
+    
+    $allSuccess = $results.Values | ForEach-Object { $_[0] } | Where-Object { $_ -ne 0 }
+
+
+    if ($allSuccess.Count -eq 0) {
+        return 0
+    } else {
+        return 1
+    }
 }
