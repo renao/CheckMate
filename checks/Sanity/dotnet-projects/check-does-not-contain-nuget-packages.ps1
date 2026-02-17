@@ -12,7 +12,9 @@ if ($NuGetPackages.Length -ne 0)
 {
     # NuGet Packages found.
     $packagesList = $NuGetPackages -join "`n"
-    "Found NuGet packages. Please check:`n $packagesList"
+    "Found NuGet packages inside this repository:`n
+    $packagesList `n `n
+    Reference them in your projects and remove the package file from the repository"
     exit 1
 }
 

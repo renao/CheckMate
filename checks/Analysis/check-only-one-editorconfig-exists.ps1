@@ -20,6 +20,6 @@ if ($allEditorConfigs.Count -eq 1) {
         exit 1
     }
 } else {
-    "Mehrere ($($allEditorConfigs.Count)) .editorconfig Dateien in $RepoRoot gefunden"
+    "Mehrere ($($allEditorConfigs.Count)) .editorconfig Dateien in $RepoRoot gefunden."
     exit 1
 }

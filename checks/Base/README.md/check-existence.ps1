@@ -14,5 +14,5 @@ if ($readmeExists) {
     exit 0
 }
 
-"$readmeName missing"
+"$readmeName missing - add a meaningful $readmeName file"
 exit 1
