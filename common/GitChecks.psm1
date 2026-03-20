@@ -62,3 +62,25 @@ function Get-LastFileCommitDate {
     }
     return [DateTime]::ParseExact($gitDateString.Substring(0, 19), "yyyy-MM-dd HH:mm:ss", $null)
 }
+
+function Get-RemoteBranches {
+    <#
+    .SYNOPSIS
+    Gets the list of remote branches in the repository.
+
+    .DESCRIPTION
+    Returns a list of remote branches in the repository.
+
+    .EXAMPLE
+    Get-RemoteBranches
+    
+    #>
+    [OutputType([System.String[]])]
+    param ()
+
+    $remoteBranches = git branch -r
+    if ([string]::IsNullOrWhiteSpace($remoteBranches)) {
+        return $null
+    }
+    return $remoteBranches -split "`n" | ForEach-Object { $_.Trim() }
+}

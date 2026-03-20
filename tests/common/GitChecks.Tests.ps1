@@ -31,3 +31,10 @@ Describe 'Get-LastFileCommitDate' {
         Get-LastFileCommitDate -filePath $shouldNotExist | Should -Be $null
     }
 }
+
+Describe 'Get-RemoteBranches' {
+    It 'Returns a list of remote branches' {
+        Get-RemoteBranches | Should -Not -BeNullOrEmpty
+        Get-RemoteBranches | Should -Contain 'origin/main'
+    }
+}
