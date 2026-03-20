@@ -16,6 +16,6 @@ Describe 'Checks: README.md existence' {
         $result = & $scriptPath -RepoRoot $PSScriptRoot
 
         $LASTEXITCODE | Should -Be 1
-        $result | Should -Be "README.md missing"
+        $result | Should -Be "README.md missing - add a meaningful README.md file"
     }
 }
