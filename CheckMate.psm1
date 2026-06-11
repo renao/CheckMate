@@ -52,18 +52,16 @@ function Invoke-CheckMate {
     # Alle Checks rekursiv einsammeln
     Get-ChildItem -Path $checkFolder -Filter *.ps1 -Recurse | ForEach-Object {
         $scriptPath = $_.FullName
+        $simplifiedCheckPath = [System.IO.Path]::GetRelativePath($checkFolder, $scriptPath)
 
         try
         {
-            $simplifiedCheckPath = [System.IO.Path]::GetRelativePath($checkFolder, $scriptPath)
             $result = & $scriptPath -RepoRoot $workingDirectory
-            $checkSuccess = $LASTEXITCODE
-            $results[$simplifiedCheckPath] = @($checkSuccess, $result)
+            $results[$simplifiedCheckPath] = Resolve-CheckResult -RawOutput $result -CheckPath $simplifiedCheckPath
         }
         catch
         {
-            Write-Error "Exception while running `n$_"
-            $results[$simplifiedCheckPath] = @(1, "Threw Exception: $_")
+            $results[$simplifiedCheckPath] = New-FailureResultFromException -ExceptionRecord $_ -CheckPath $simplifiedCheckPath
         }
 
     }
@@ -82,6 +80,86 @@ function Invoke-CheckMate {
     Set-Content -Value $markdownReport -Encoding UTF8 $reportFile
 
     return Get-OverallResult $results
+}
+
+function Resolve-CheckResult {
+    param(
+        [Parameter(Mandatory = $true)]
+        [AllowNull()]
+        [object]$RawOutput,
+
+        [Parameter(Mandatory = $true)]
+        [string]$CheckPath
+    )
+
+    $resultHash = $null
+
+    if ($RawOutput -is [System.Collections.IEnumerable] -and -not ($RawOutput -is [string])) {
+        $allOutput = @($RawOutput)
+        if ($allOutput.Count -gt 0) {
+            $resultHash = $allOutput | Where-Object { $_ -is [hashtable] } | Select-Object -Last 1
+        }
+    }
+    elseif ($RawOutput -is [hashtable]) {
+        $resultHash = $RawOutput
+    }
+
+    if ($null -eq $resultHash) {
+        return New-ContractFailureResult -CheckPath $CheckPath -Reason "The check did not return a hashtable as its last hashtable output object."
+    }
+
+    $requiredFields = @('Status', 'Message', 'ChangedItems', 'Errors')
+    $missingFields = $requiredFields | Where-Object { -not $resultHash.ContainsKey($_) }
+
+    if ($missingFields.Count -gt 0) {
+        return New-ContractFailureResult -CheckPath $CheckPath -Reason "Missing required field(s): $($missingFields -join ', ')"
+    }
+
+    $allowedStatuses = @('Success', 'Failure', 'Skipped')
+    if ($resultHash.Status -notin $allowedStatuses) {
+        return New-ContractFailureResult -CheckPath $CheckPath -Reason "Invalid Status value '$($resultHash.Status)'. Allowed: Success, Failure, Skipped."
+    }
+
+    return @{
+        Status       = [string]$resultHash.Status
+        Message      = [string]$resultHash.Message
+        ChangedItems = @($resultHash.ChangedItems)
+        Errors       = @($resultHash.Errors)
+    }
+}
+
+function New-ContractFailureResult {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$CheckPath,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Reason
+    )
+
+    return @{
+        Status       = 'Failure'
+        Message      = "Contract violation in '$CheckPath': $Reason"
+        ChangedItems = @()
+        Errors       = @()
+    }
+}
+
+function New-FailureResultFromException {
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.Management.Automation.ErrorRecord]$ExceptionRecord,
+
+        [Parameter(Mandatory = $true)]
+        [string]$CheckPath
+    )
+
+    return @{
+        Status       = 'Failure'
+        Message      = "Exception while running '$CheckPath': $($ExceptionRecord.Exception.Message)"
+        ChangedItems = @()
+        Errors       = @($ExceptionRecord.Exception)
+    }
 }
 
 function Resolve-RepoRoot {
@@ -125,9 +203,9 @@ function Get-OverallResult {
         [Hashtable] $results
     )
 
-    $allSuccess = $results.Values | ForEach-Object { $_[0] } | Where-Object { $_ -ne 0 }
+    $failedChecks = $results.Values | Where-Object { $_.Status -eq 'Failure' }
 
-    if ($allSuccess.Count -eq 0) {
+    if ($failedChecks.Count -eq 0) {
         return 0
     } else {
         return 1

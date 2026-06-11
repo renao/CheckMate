@@ -13,13 +13,25 @@ if ($allEditorConfigs.Count -eq 1) {
     $expectedPath = Join-Path $RepoRoot ".editorconfig"
 
     if ($editorConfigPath -eq $expectedPath) {
-        "Die benötige .editorconfig existiert"
-        exit 0
+        return @{
+            Status = 'Success'
+            Message = 'Die benötige .editorconfig existiert'
+            ChangedItems = @()
+            Errors = @()
+        }
     } else {
-        ".editorconfig im falschen Verzeichnis: $editorConfigPath"
-        exit 1
+        return @{
+            Status = 'Failure'
+            Message = ".editorconfig im falschen Verzeichnis: $editorConfigPath"
+            ChangedItems = @($editorConfigPath)
+            Errors = @()
+        }
     }
 } else {
-    "Mehrere ($($allEditorConfigs.Count)) .editorconfig Dateien in $RepoRoot gefunden."
-    exit 1
+    return @{
+        Status = 'Failure'
+        Message = "Mehrere ($($allEditorConfigs.Count)) .editorconfig Dateien in $RepoRoot gefunden."
+        ChangedItems = @($allEditorConfigs.FullName)
+        Errors = @()
+    }
 }

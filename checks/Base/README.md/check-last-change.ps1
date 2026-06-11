@@ -9,27 +9,43 @@ $thresholdMonths = 12
 $readmeName = "README.md"
 $readmePath =  "$RepoRoot/$readmeName"
 
-$ageCheckResult = Approve-FileIsYoungerThan -filePath $readmePath -cutOffDay (Get-Date).AddMonths(-$thresholdMonths)
+$ageCheckResult = Approve-FileIsYoungerThan -filePath $readmePath -repoRoot $RepoRoot -cutOffDay (Get-Date).AddMonths(-$thresholdMonths)
 
 switch ($ageCheckResult) {
     0 {
-        "$readmeName was modified in the last $thresholdMonths months."
-        exit 0
+        return @{
+            Status = 'Success'
+            Message = "$readmeName was modified in the last $thresholdMonths months."
+            ChangedItems = @()
+            Errors = @()
+        }
     }
 
     1 {
-        $lastCommitDate = (Get-LastFileCommitDate -filePath $readmePath)
-        "$readmeName seems outdated. Consider updating the file - last commit: $lastCommitDate"
-        exit 1
+        $lastCommitDate = (Get-LastFileCommitDate -filePath $readmePath -repoRoot $RepoRoot)
+        return @{
+            Status = 'Failure'
+            Message = "$readmeName seems outdated. Consider updating the file - last commit: $lastCommitDate"
+            ChangedItems = @($readmeName)
+            Errors = @()
+        }
     }
 
     20 {
-        "$readmeName is missing in the git repository"
-        exit 1
+        return @{
+            Status = 'Failure'
+            Message = "$readmeName is missing in the git repository"
+            ChangedItems = @($readmeName)
+            Errors = @()
+        }
     }
 
     $null {
-        "$readmeName not found"
-        exit 1
+        return @{
+            Status = 'Failure'
+            Message = "$readmeName not found"
+            ChangedItems = @($readmeName)
+            Errors = @()
+        }
     }
 }

@@ -17,10 +17,12 @@ function Approve-FileIsYoungerThan {
     param (
         [Parameter(Mandatory=$true)]
         [string]$filePath,
+        [Parameter(Mandatory=$false)]
+        [string]$repoRoot,
         [Parameter(Mandatory=$true)]
         [DateTime]$cutOffDay
     )
-    $fileCommittedAt = Get-LastFileCommitDate -filePath $filePath
+    $fileCommittedAt = Get-LastFileCommitDate -filePath $filePath -repoRoot $repoRoot
 
     if ($null -eq $fileCommittedAt) {
         # Not able to find or fetch file information from git/current branch.
@@ -53,10 +55,18 @@ function Get-LastFileCommitDate {
     [OutputType([System.DateTime])]
     param (
         [Parameter(Mandatory=$true)]
-        [string]$filePath
-    ),
+        [string]$filePath,
+        [Parameter(Mandatory=$false)]
+        [string]$repoRoot
+    )
 
-    $gitDateString = git log -1 --format="%ci" -- $filePath
+    $gitDateString = if ([string]::IsNullOrWhiteSpace($repoRoot)) {
+        git log -1 --format="%ci" -- $filePath
+    }
+    else {
+        git -C $repoRoot log -1 --format="%ci" -- $filePath
+    }
+
     if ([string]::IsNullOrWhiteSpace(($gitDateString))) {
         return $null
     }
@@ -76,9 +86,18 @@ function Get-RemoteBranches {
     
     #>
     [OutputType([System.String[]])]
-    param ()
+    param (
+        [Parameter(Mandatory=$false)]
+        [string]$repoRoot
+    )
 
-    $remoteBranches = git branch -r
+    $remoteBranches = if ([string]::IsNullOrWhiteSpace($repoRoot)) {
+        git branch -r
+    }
+    else {
+        git -C $repoRoot branch -r
+    }
+
     if ([string]::IsNullOrWhiteSpace($remoteBranches)) {
         return $null
     }

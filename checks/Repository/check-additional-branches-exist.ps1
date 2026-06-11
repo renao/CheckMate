@@ -13,16 +13,22 @@ $allowed_branches = @(
     'origin/HEAD -> origin/master',
     'origin/HEAD -> origin/develop')
 
-$branches = Get-RemoteBranches
+$branches = Get-RemoteBranches -repoRoot $RepoRoot
 $branches = $branches | Where-Object { $_ -notin $allowed_branches }
 
 
 if ($branches.Count -eq 0) {
-    "No additional branches found, only main branches exists"
-    exit 0
+    return @{
+        Status = 'Success'
+        Message = 'No additional branches found, only main branches exists'
+        ChangedItems = @()
+        Errors = @()
+    }
 }
 
-"Additional branches found: `n
-$($branches -join "`n"): `n
-consider removing them or adding them to the main branch"
-exit 1
+return @{
+    Status = 'Failure'
+    Message = "Additional branches found: $($branches -join ', ')"
+    ChangedItems = @($branches)
+    Errors = @()
+}
