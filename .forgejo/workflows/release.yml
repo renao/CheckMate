@@ -1,0 +1,78 @@
+name: Release Validation
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-and-package:
+    name: Validate and Build Release Bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: https://data.forgejo.org/actions/checkout@v6
+
+      - name: Install Pester
+        shell: pwsh
+        run: |
+          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+          Install-Module Pester -Force -SkipPublisherCheck -Scope CurrentUser
+
+      - name: Run test suite
+        shell: pwsh
+        run: |
+          $config = New-PesterConfiguration
+          $config.Run.Path = 'tests'
+          $config.Output.Verbosity = 'Normal'
+          Invoke-Pester -Configuration $config
+
+      - name: Release smoke test (successful checks only)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path TestResults/release-checks | Out-Null
+
+          Copy-Item tests/fixtures/contract-checks/success-check.ps1 TestResults/release-checks/
+          Copy-Item tests/fixtures/contract-checks/skipped-check.ps1 TestResults/release-checks/
+
+          Import-Module ./CheckMate.psd1 -Force
+
+          $reportPath = Join-Path $PWD 'TestResults/release-smoke-report.md'
+          $result = Invoke-CheckMate -RepoRoot $PWD -ChecksBasePath 'TestResults/release-checks' -ReportPath $reportPath
+
+          if ($result -ne 0) {
+            throw "Expected successful smoke result 0, got $result."
+          }
+
+      - name: Build release bundle
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+
+          $version = if ($env:GITHUB_REF_NAME) { $env:GITHUB_REF_NAME } else { 'snapshot' }
+          $bundleName = "CheckMate-$version.zip"
+
+          $paths = @(
+            'CheckMate.psd1',
+            'CheckMate.psm1',
+            'common',
+            'checks',
+            'README.md',
+            'LICENSE'
+          )
+
+          Compress-Archive -Path $paths -DestinationPath "dist/$bundleName" -Force
+
+          $hash = Get-FileHash -Path "dist/$bundleName" -Algorithm SHA256
+          "$($hash.Algorithm)  $($hash.Hash)  $bundleName" | Out-File "dist/$bundleName.sha256"
+
+      - name: Upload release artifacts
+        uses: https://data.forgejo.org/actions/upload-artifact@v4
+        with:
+          name: release-bundle
+          path: dist/

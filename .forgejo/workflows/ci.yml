@@ -1,0 +1,190 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+  schedule:
+    - cron: '31 4 * * 6'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint (PSScriptAnalyzer)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: https://data.forgejo.org/actions/checkout@v6
+
+      - name: Install analyzer module
+        shell: pwsh
+        run: |
+          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+          Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
+
+      - name: Run PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path TestResults | Out-Null
+
+          $paths = @(
+            'CheckMate.psm1',
+            'common',
+            'checks'
+          )
+
+          $issues = Invoke-ScriptAnalyzer -Path $paths -Recurse -Severity Warning,Error
+          $issues | ConvertTo-Json -Depth 5 | Out-File TestResults/PSScriptAnalyzer.json
+
+          if ($issues.Count -gt 0) {
+            Write-Host "Found $($issues.Count) analyzer findings."
+            exit 1
+          }
+
+      - name: Upload lint results
+        if: always()
+        uses: https://data.forgejo.org/actions/upload-artifact@v4
+        with:
+          name: lint-results
+          path: TestResults/PSScriptAnalyzer.json
+
+  test:
+    name: Unit Tests + Coverage
+    needs: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: https://data.forgejo.org/actions/checkout@v6
+
+      - name: Install Pester
+        shell: pwsh
+        run: |
+          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+          Install-Module Pester -Force -SkipPublisherCheck -Scope CurrentUser
+
+      - name: Run Pester with coverage gate
+        shell: pwsh
+        run: |
+          $minimumCoverage = 80
+          New-Item -ItemType Directory -Force -Path TestResults | Out-Null
+
+          $allScripts = Get-ChildItem -Path $PWD -Recurse -Include *.ps1,*.psm1 |
+            Where-Object {
+              $_.FullName -notmatch '\\tests\\' -and
+              $_.FullName -notmatch '\\.git\\'
+            }
+
+          $config = New-PesterConfiguration
+          $config.Run.Path = 'tests'
+          $config.Run.PassThru = $true
+          $config.CodeCoverage.Enabled = $true
+          $config.CodeCoverage.Path = $allScripts.FullName
+          $config.CodeCoverage.OutputPath = 'TestResults/coverage.cobertura.xml'
+          $config.TestResult.Enabled = $true
+          $config.TestResult.OutputPath = 'TestResults/TestResults.xml'
+          $config.TestResult.OutputFormat = 'NUnitXml'
+          $config.Output.Verbosity = 'Detailed'
+
+          $results = Invoke-Pester -Configuration $config
+          $results | ConvertTo-Json -Depth 10 | Out-File 'TestResults/PesterResults.json'
+
+          if ($results.FailedCount -gt 0) {
+            Write-Host "Pester failed with $($results.FailedCount) failed tests."
+            exit 1
+          }
+
+          $coverage = $results.CodeCoverage
+          if ($null -eq $coverage) {
+            throw 'Coverage data was not generated.'
+          }
+
+          $coveragePercent = $null
+          if ($coverage.PSObject.Properties.Name -contains 'CoveragePercent') {
+            $coveragePercent = [double]$coverage.CoveragePercent
+          } elseif ($coverage.PSObject.Properties.Name -contains 'PercentCoverage') {
+            $coveragePercent = [double]$coverage.PercentCoverage
+          } elseif (
+            $coverage.PSObject.Properties.Name -contains 'NumberOfCommandsAnalyzed' -and
+            $coverage.PSObject.Properties.Name -contains 'NumberOfCommandsExecuted' -and
+            [int]$coverage.NumberOfCommandsAnalyzed -gt 0
+          ) {
+            $coveragePercent = [math]::Round((100.0 * [int]$coverage.NumberOfCommandsExecuted / [int]$coverage.NumberOfCommandsAnalyzed), 2)
+          }
+
+          if ($null -eq $coveragePercent) {
+            throw 'Coverage percent could not be determined from Pester output.'
+          }
+
+          "CoveragePercent=$coveragePercent" | Out-File 'TestResults/CoverageGate.txt'
+
+          if ($coveragePercent -lt $minimumCoverage) {
+            Write-Host "Coverage $coveragePercent% is below required $minimumCoverage%."
+            exit 1
+          }
+
+      - name: Upload test results
+        if: always()
+        uses: https://data.forgejo.org/actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults/
+
+  contract:
+    name: Contract Checks
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: https://data.forgejo.org/actions/checkout@v6
+
+      - name: Run CheckMate contract checks
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path TestResults | Out-Null
+
+          Import-Module ./CheckMate.psd1 -Force
+
+          $checksPath = Join-Path $PWD 'tests/fixtures/contract-checks'
+          $reportPath = Join-Path $PWD 'TestResults/contract-report.md'
+
+          $overallResult = Invoke-CheckMate -RepoRoot $PWD -ChecksBasePath $checksPath -ReportPath $reportPath
+
+          # The fixture set contains one failure and one throwing check,
+          # therefore the expected overall result is "failed".
+          if ($overallResult -ne 1) {
+            throw "Expected overall result 1, got $overallResult."
+          }
+
+          $reportContent = Get-Content -Path $reportPath -Raw
+          @(
+            'Status: Success',
+            'Status: Skipped',
+            'Status: Failure',
+            'Exception while running',
+            'Summary'
+          ) | ForEach-Object {
+            if ($reportContent -notmatch [regex]::Escape($_)) {
+              throw "Expected pattern not found in report: $_"
+            }
+          }
+
+      - name: Upload contract report
+        if: always()
+        uses: https://data.forgejo.org/actions/upload-artifact@v4
+        with:
+          name: contract-results
+          path: TestResults/contract-report.md
