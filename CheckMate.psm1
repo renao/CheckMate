@@ -84,7 +84,7 @@ function Invoke-CheckMate {
     if (-not $SkipReportGeneration) {
         Import-Module "$PSScriptRoot/common/MarkdownReport.psd1"
 
-        $markdownReport = New-MarkdownReport -results $results
+        $markdownReport = New-MarkdownReport -InputObject $results
 
         $reportFile = if ([System.IO.Path]::IsPathRooted($ReportPath)) {
             $ReportPath

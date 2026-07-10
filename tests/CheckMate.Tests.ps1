@@ -58,5 +58,27 @@ Describe "Invoke-CheckMate" {
             $result.ReportPath | Should -BeNullOrEmpty
             Test-Path $reportPath | Should -BeFalse
         }
+
+        It "Normalizes ChangedItems into structured warning entries in PassThru mode" {
+            $fixtureChecksPath = Join-Path $PSScriptRoot 'fixtures\normalized-changed-items'
+
+            $result = Invoke-CheckMate -RepoRoot $PSScriptRoot -ChecksBasePath $fixtureChecksPath -PassThru -SkipReportGeneration
+
+            $result.OverallStatus | Should -Be 'Failure'
+            $check = @($result.Checks | Where-Object { $_.CheckPath -eq 'structured-failure-check.ps1' })[0]
+            $check.ChangedCount | Should -Be 2
+            @($check.NormalizedChangedItems).Count | Should -Be 2
+
+            $firstItem = $check.NormalizedChangedItems[0]
+            $firstItem.Path | Should -Be 'src\Example.cs'
+            $firstItem.Line | Should -Be 12
+            $firstItem.Column | Should -Be 4
+            $firstItem.Code | Should -Be 'OD001'
+            $firstItem.Message | Should -Be 'Trailing whitespace found.'
+
+            $secondItem = $check.NormalizedChangedItems[1]
+            $secondItem.Path | Should -BeNullOrEmpty
+            $secondItem.Message | Should -Be 'Legacy string item'
+        }
     }
 }
