@@ -25,6 +25,48 @@ function ConvertTo-CheckMateRunResult {
     throw 'Unsupported input for New-MarkdownReport. Provide either the raw results hashtable or a structured CheckMate result object.'
 }
 
+function Format-ChangedItemMarkdown {
+    param(
+        [Parameter(Mandatory = $true)]
+        [AllowNull()]
+        [object]$ChangedItem
+    )
+
+    if ($null -eq $ChangedItem) {
+        return '* (empty changed item)'
+    }
+
+    $message = [string]$ChangedItem.Message
+    if ([string]::IsNullOrWhiteSpace($message)) {
+        $message = $ChangedItem.ToString()
+    }
+
+    $locationParts = @()
+    if (-not [string]::IsNullOrWhiteSpace([string]$ChangedItem.Path)) {
+        $location = [string]$ChangedItem.Path
+        if ($null -ne $ChangedItem.Line) {
+            $location += ":$($ChangedItem.Line)"
+            if ($null -ne $ChangedItem.Column) {
+                $location += ":$($ChangedItem.Column)"
+            }
+        }
+        $locationParts += $location
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace([string]$ChangedItem.Code)) {
+        $locationParts += "Code $($ChangedItem.Code)"
+    }
+
+    $prefix = if ($locationParts.Count -gt 0) {
+        "[$($locationParts -join ' | ')] "
+    }
+    else {
+        ''
+    }
+
+    return "* $prefix$message"
+}
+
 function New-MarkdownReport {
     <#
     .SYNOPSIS
@@ -55,6 +97,7 @@ function New-MarkdownReport {
         $icon = _Get-ResultValueByStatus -status $status
         $message = [string]$check.Message
         $changedItems = @($check.ChangedItems)
+        $normalizedChangedItems = @($check.NormalizedChangedItems)
         $errors = @($check.Errors)
 
         $markdown += "`n`n## $icon $($check.CheckPath)"
@@ -64,8 +107,16 @@ function New-MarkdownReport {
         $markdown += "`n* Errors: $($errors.Count)"
 
         if ($changedItems.Count -gt 0) {
-            $changedItemsText = ($changedItems | ForEach-Object { $_.ToString() }) -join " | "
-            $markdown += "`n* ChangedItems Details: $changedItemsText"
+            $markdown += "`n* ChangedItems Details:"
+
+            if ($normalizedChangedItems.Count -gt 0) {
+                $changedItemsText = $normalizedChangedItems | ForEach-Object { Format-ChangedItemMarkdown -ChangedItem $_ }
+            }
+            else {
+                $changedItemsText = $changedItems | ForEach-Object { "* $($_.ToString())" }
+            }
+
+            $markdown += "`n$($changedItemsText -join "`n")"
         }
 
         if ($errors.Count -gt 0) {

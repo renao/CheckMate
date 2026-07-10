@@ -80,5 +80,17 @@ Describe "Invoke-CheckMate" {
             $secondItem.Path | Should -BeNullOrEmpty
             $secondItem.Message | Should -Be 'Legacy string item'
         }
+
+        It "Renders normalized ChangedItems readably in the markdown report" {
+            $fixtureChecksPath = Join-Path $PSScriptRoot 'fixtures\normalized-changed-items'
+            $reportPath = Join-Path $TestDrive 'normalized-report.md'
+
+            $overallResult = Invoke-CheckMate -RepoRoot $PSScriptRoot -ChecksBasePath $fixtureChecksPath -ReportPath $reportPath
+
+            $overallResult | Should -Be 1
+            $reportContent = Get-Content -Path $reportPath -Raw
+            $reportContent | Should -Match '\[src\\Example\.cs:12:4 \| Code OD001\] Trailing whitespace found\.'
+            $reportContent | Should -Match '\* Legacy string item'
+        }
     }
 }

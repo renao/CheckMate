@@ -82,7 +82,7 @@ function Invoke-CheckMate {
     $reportFile = $null
 
     if (-not $SkipReportGeneration) {
-        Import-Module "$PSScriptRoot/common/MarkdownReport.psd1"
+        Import-Module "$PSScriptRoot/common/MarkdownReport.psd1" -Force
 
         $markdownReport = New-MarkdownReport -InputObject $results
 
