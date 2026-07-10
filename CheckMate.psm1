@@ -15,6 +15,13 @@ function Invoke-CheckMate {
     .PARAMETER ChecksBasePath
     (optional) Specifies the base path for the checks - will be resolved relative to this script if not absolute.
 
+    .PARAMETER PassThru
+    Returns a structured result object instead of only the overall exit code.
+
+    .PARAMETER SkipReportGeneration
+    Skips the built-in markdown report generation. Useful when the caller wants
+    to create its own output format.
+
     .EXAMPLE
     Run only the checks from the `checks/Sanity` directory on the `./MySolution/MyProject` path and generate a `ChecksResult.md` file with the results:
     Invoke-CheckMate -RepoRoot "./MySolution/ProjectDirectory" -ReportPath "CheckResults.md" -ChecksBasePath "checks/Sanity"
@@ -29,9 +36,15 @@ function Invoke-CheckMate {
 
         # name of the report file to be created
 
-        [string]$ReportPath = "$(get-date -f yyyy-MM-dd-HH-mm-ss)_autoreview-report.md"
+        [string]$ReportPath = "$(get-date -f yyyy-MM-dd-HH-mm-ss)_autoreview-report.md",
+
+        [switch]$PassThru,
+
+        [switch]$SkipReportGeneration
 
     )
+
+    Import-Module "$PSScriptRoot/common/CheckMateResult.psd1" -Force
 
     $workingDirectory = Resolve-RepoRoot -RepoRoot $RepoRoot
 
@@ -66,20 +79,30 @@ function Invoke-CheckMate {
 
     }
 
-    Import-Module "$PSScriptRoot/common/MarkdownReport.psd1"
+    $reportFile = $null
 
-    $markdownReport = New-MarkdownReport -results $results
+    if (-not $SkipReportGeneration) {
+        Import-Module "$PSScriptRoot/common/MarkdownReport.psd1"
 
-    $reportFile = if ([System.IO.Path]::IsPathRooted($ReportPath)) {
-        $ReportPath
+        $markdownReport = New-MarkdownReport -results $results
+
+        $reportFile = if ([System.IO.Path]::IsPathRooted($ReportPath)) {
+            $ReportPath
+        }
+        else {
+            Join-Path $workingDirectory $ReportPath
+        }
+
+        Set-Content -Value $markdownReport -Encoding UTF8 $reportFile
     }
-    else {
-        Join-Path $workingDirectory $ReportPath
+
+    $checkMateResult = New-CheckMateRunResult -Results $results -RepoRoot $workingDirectory -ChecksBasePath $checkFolder -ReportPath $reportFile
+
+    if ($PassThru) {
+        return $checkMateResult
     }
 
-    Set-Content -Value $markdownReport -Encoding UTF8 $reportFile
-
-    return Get-OverallResult $results
+    return $checkMateResult.ExitCode
 }
 
 function Resolve-CheckResult {
@@ -203,11 +226,9 @@ function Get-OverallResult {
         [Hashtable] $results
     )
 
-    $failedChecks = $results.Values | Where-Object { $_.Status -eq 'Failure' }
-
-    if ($failedChecks.Count -eq 0) {
+    if ((Get-OverallStatus -Results $results) -eq 'Success') {
         return 0
-    } else {
-        return 1
     }
+
+    return 1
 }

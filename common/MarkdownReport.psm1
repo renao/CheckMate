@@ -6,6 +6,25 @@ function _Get-ResultValueByStatus($status) {
     }
 }
 
+function ConvertTo-CheckMateRunResult {
+    param(
+        [Parameter(Mandatory = $true)]
+        [AllowNull()]
+        [object]$InputObject
+    )
+
+    if ($InputObject -is [hashtable]) {
+        Import-Module "$PSScriptRoot/CheckMateResult.psd1" -Force
+        return New-CheckMateRunResult -Results $InputObject -RepoRoot '' -ChecksBasePath '' -ReportPath $null
+    }
+
+    if ($null -ne $InputObject.PSObject.Properties['Checks'] -and $null -ne $InputObject.PSObject.Properties['Summary']) {
+        return $InputObject
+    }
+
+    throw 'Unsupported input for New-MarkdownReport. Provide either the raw results hashtable or a structured CheckMate result object.'
+}
+
 function New-MarkdownReport {
     <#
     .SYNOPSIS
@@ -14,42 +33,31 @@ function New-MarkdownReport {
     .DESCRIPTION
     Creates a markdown report from a result set.
 
-    .PARAMETER results
-    A Hashtable in the form of [Name of the check] => [Status, Message, ChangedItems, Errors]
+    .PARAMETER InputObject
+    Either a Hashtable in the form of [Name of the check] => [Status, Message,
+    ChangedItems, Errors] or a structured CheckMate result object.
 
     .EXAMPLE
-    New-MarkdownReport -results $checkResults
+    New-MarkdownReport -InputObject $checkResults
     
     #>
     [OutputType([System.String])]
     param (
-        [Parameter(Mandatory=$true)]
-        [Hashtable] $results
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
+        [AllowNull()]
+        [object] $InputObject
     )
 
+    $checkMateResult = ConvertTo-CheckMateRunResult -InputObject $InputObject
     $markdown = "# CheckMate Report`n"
-    $runChecks = $results.Keys | Sort-Object
-
-    $statusCounts = @{
-        Success = 0
-        Failure = 0
-        Skipped = 0
-    }
-
-    foreach ($check in $runChecks) {
-
-        $checkResult = $results[$check]
-        $status = [string]$checkResult.Status
+    foreach ($check in @($checkMateResult.Checks)) {
+        $status = [string]$check.Status
         $icon = _Get-ResultValueByStatus -status $status
-        $message = [string]$checkResult.Message
-        $changedItems = @($checkResult.ChangedItems)
-        $errors = @($checkResult.Errors)
+        $message = [string]$check.Message
+        $changedItems = @($check.ChangedItems)
+        $errors = @($check.Errors)
 
-        if ($statusCounts.ContainsKey($status)) {
-            $statusCounts[$status] = $statusCounts[$status] + 1
-        }
-
-        $markdown += "`n`n## $icon $check"
+        $markdown += "`n`n## $icon $($check.CheckPath)"
         $markdown += "`n* Status: $status"
         $markdown += "`n* Message: $message"
         $markdown += "`n* ChangedItems: $($changedItems.Count)"
@@ -69,10 +77,13 @@ function New-MarkdownReport {
         }
     }
 
+    $summary = $checkMateResult.Summary
     $markdown += "`n`n## Summary"
-    $markdown += "`n* Success: $($statusCounts.Success)"
-    $markdown += "`n* Failure: $($statusCounts.Failure)"
-    $markdown += "`n* Skipped: $($statusCounts.Skipped)"
+    $markdown += "`n* Success: $($summary.SuccessCount)"
+    $markdown += "`n* Failure: $($summary.FailureCount)"
+    $markdown += "`n* Skipped: $($summary.SkippedCount)"
+    $markdown += "`n* ChangedItems: $($summary.ChangedItemCount)"
+    $markdown += "`n* Errors: $($summary.ErrorCount)"
 
     return $markdown -join "`n"
 }

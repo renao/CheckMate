@@ -30,5 +30,33 @@ Describe "Invoke-CheckMate" {
             $reportContent | Should -Match 'Skipped: 1'
             $reportContent | Should -Match 'Failure: 2'
         }
+
+        It "Returns a structured result object in PassThru mode" {
+            $fixtureChecksPath = Join-Path $PSScriptRoot 'fixtures\contract-checks'
+            $reportPath = Join-Path $TestDrive 'report.md'
+
+            $result = Invoke-CheckMate -RepoRoot $PSScriptRoot -ChecksBasePath $fixtureChecksPath -ReportPath $reportPath -PassThru
+
+            $result.OverallStatus | Should -Be 'Failure'
+            $result.ExitCode | Should -Be 1
+            $result.ReportPath | Should -Be $reportPath
+            $result.Summary.TotalChecks | Should -Be 4
+            $result.Summary.SuccessCount | Should -Be 1
+            $result.Summary.SkippedCount | Should -Be 1
+            $result.Summary.FailureCount | Should -Be 2
+            @($result.Checks).Count | Should -Be 4
+            @($result.Checks | Where-Object { $_.Status -eq 'Failure' }).Count | Should -Be 2
+        }
+
+        It "Can skip markdown report generation in PassThru mode" {
+            $fixtureChecksPath = Join-Path $PSScriptRoot 'fixtures\contract-checks'
+            $reportPath = Join-Path $TestDrive 'skip-report.md'
+
+            $result = Invoke-CheckMate -RepoRoot $PSScriptRoot -ChecksBasePath $fixtureChecksPath -ReportPath $reportPath -PassThru -SkipReportGeneration
+
+            $result.OverallStatus | Should -Be 'Failure'
+            $result.ReportPath | Should -BeNullOrEmpty
+            Test-Path $reportPath | Should -BeFalse
+        }
     }
 }
